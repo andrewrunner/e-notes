@@ -1,22 +1,7 @@
 import express from "express";
 import { createHandler } from "graphql-http/lib/use/express";
-import graphql, { GraphQLObjectType, GraphQLString, GraphQLSchema } from "graphql";
-
-
-// Как строить схему в коде
-
-
-/*
-
-{ 
-    user(id:"a") { 
-            id,
-            name 
-        } 
-}
-
-*/
-
+import { GraphQLObjectType, GraphQLString, GraphQLSchema } from "graphql";
+import { Schema, model, connect } from 'mongoose';
  
 // Maps id to User object
 var fakeDatabase = {
@@ -63,6 +48,48 @@ var userType = new GraphQLObjectType({
   var schema = new GraphQLSchema({ query: queryType })
  
 var app = express()
+
+
+interface IUser {
+    name: string;
+    email: string;
+    avatar?: string;
+}
+
+const userSchema = new Schema<IUser>({
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    avatar: String
+});
+
+const User = model<IUser>('User', userSchema);
+
+async function createUser() {
+    const user = new User({
+        name: 'Bill',
+        email: 'bill@initech.com',
+        avatar: 'https://i.imgur.com/dM7Thhn.png'
+    });
+    return await user.save();
+}
+
+
+app.get('/', (req, res) => {
+
+  connect('mongodb://simple-notes-database/first')
+  .then(() => {
+
+      createUser()
+          .then((user) => {
+              return res.send(JSON.stringify(user));
+          })
+
+  })
+  .catch((e:any) => {
+    console.log(e)
+  })
+
+})
  
 // Create and use the GraphQL handler.
 app.all(
@@ -73,5 +100,5 @@ app.all(
 )
  
 // Start the server at port
-app.listen(4000)
+app.listen(3000)
 console.log("Running a GraphQL API server at http://localhost:4000/graphql")
